@@ -7,7 +7,7 @@ import { TodoList } from '../components/TodoList.jsx';
 import { request } from '../services/api.js';
 import { AuthPage } from './AuthPage.jsx';
 
-export function Dashboard({ user, onLogin, onLogout, authOpen, onCloseAuth, onAuthenticated }) {
+export function Dashboard({ user, theme, onToggleTheme, onLogin, onLogout, authOpen, onCloseAuth, onAuthenticated }) {
   const [todos, setTodos] = useState([]);
   const [tags, setTags] = useState([]);
   const [form, setForm] = useState({ title: '', description: '', dueDate: '', priority: 'medium', tagIds: [] });
@@ -70,10 +70,11 @@ export function Dashboard({ user, onLogin, onLogout, authOpen, onCloseAuth, onAu
         </nav>
         <div className="sidebar-section">
           <div className="sidebar-heading">Lists <button type="button" onClick={() => setTagModalOpen(true)}>+</button></div>
-          {tags.map((tag) => <button className="list-item" type="button" key={tag._id} onClick={() => setView(`tag:${tag._id}`)}><span>#</span> {tag.name}</button>)}
+          {tags.map((tag) => <button className={`list-item ${view === `tag:${tag._id}` ? 'selected' : ''}`} type="button" key={tag._id} onClick={() => setView(`tag:${tag._id}`)}><span className="tag-dot">#</span><strong>{tag.name}</strong><b>{todos.filter((todo) => todo.tags?.some((taskTag) => taskTag._id === tag._id)).length || ''}</b></button>)}
           {!tags.length && <p className="sidebar-empty">Create tags like workout or office work.</p>}
         </div>
         <div className="sidebar-bottom">
+          <button className="theme-toggle" type="button" onClick={onToggleTheme} aria-label={`Switch to ${theme === 'light' ? 'dark' : 'light'} mode`}><span>{theme === 'light' ? '☾' : '☀'}</span><strong>{theme === 'light' ? 'Dark mode' : 'Light mode'}</strong></button>
           <button className={`nav-item ${view === 'completed' ? 'active' : ''}`} type="button" onClick={() => setView('completed')}><span>✓</span> Completed <b>{completedTasks.length || ''}</b></button>
           <button className={`nav-item ${view === 'trash' ? 'active' : ''}`} type="button" onClick={() => setView('trash')}><span>♜</span> Trash <b>{trashTodos.length || ''}</b></button>
         </div>
@@ -81,10 +82,10 @@ export function Dashboard({ user, onLogin, onLogout, authOpen, onCloseAuth, onAu
       <main className="workspace">
         <header className="workspace-header"><div className="workspace-title"><span className="menu-icon">☰</span><h1>My tasks</h1></div><div className="header-actions">{user ? <button className="profile-button" type="button" onClick={onLogout}><span>{user.name.charAt(0).toUpperCase()}</span>{user.name}<small>Log out</small></button> : <button className="corner-login" type="button" onClick={onLogin}>Log in / Register</button>}</div></header>
         <section className="content-column">
-          {view === 'dashboard' && <AnalyticsDashboard todos={todos} />}
+          {view === 'dashboard' && <AnalyticsDashboard todos={todos} onAddTask={() => { setView('kanban'); setTimeout(() => document.querySelector('.todo-form input[placeholder="Task name"]')?.focus(), 0); }} onViewSla={() => setView('sla')} onAddTag={() => setTagModalOpen(true)} />}
           {view === 'sla' && <SlaAnalytics todos={todos} />}
           {view === 'trash' && <><div className="section-header"><h2>Trash <span>{trashTodos.length || ''}</span></h2></div><section className="task-panel trash-panel">{trashTodos.length ? trashTodos.map((todo) => <article className="trash-card" key={todo._id}><strong>{todo.title}</strong><small>Deleted {new Date(todo.deletedAt).toLocaleString()}</small></article>) : <p className="empty">Deleted tasks will appear here.</p>}</section></>}
-          {view === 'completed' && <><div className="section-header"><h2>Completed <span>{completedTasks.length || ''}</span></h2></div><section className="task-panel completed-panel">{completedTasks.length ? <TodoList todos={completedTasks} {...taskActions} /> : <p className="empty">Completed tasks will appear here.</p>}</section></>}
+          {view === 'completed' && <><div className="section-header"><h2>Completed <span>{completedTasks.length || ''}</span></h2></div><section className="task-panel completed-panel"><TodoList todos={completedTasks} tags={tags} {...taskActions} /></section></>}
           {['kanban', 'list', 'sections'].includes(view) && <TaskWorkspace view={view} todos={todos} tags={tags} form={form} setForm={setForm} addTodo={addTodo} minDateTime={minDateTime} {...taskActions} onViewChange={setView} />}
           {view.startsWith('tag:') && <TaskWorkspace view="kanban" todos={todos.filter((todo) => todo.tags?.some((tag) => tag._id === view.slice(4)))} tags={tags} form={form} setForm={setForm} addTodo={addTodo} minDateTime={minDateTime} {...taskActions} onViewChange={setView} />}
           {error && <p className="error">{error}</p>}
@@ -101,7 +102,7 @@ function TaskWorkspace({ view, todos, tags, form, setForm, addTodo, minDateTime,
     <>
       <div className="section-header"><h2>Tasks · {view === 'kanban' ? 'Kanban' : view === 'sections' ? 'Sections' : 'List'} <span>{todos.length || ''}</span></h2><div className="view-switcher"><button className={view === 'list' ? 'active' : ''} type="button" onClick={() => onViewChange('list')}>List</button><button className={view === 'sections' ? 'active' : ''} type="button" onClick={() => onViewChange('sections')}>Sections</button><button className={view === 'kanban' ? 'active' : ''} type="button" onClick={() => onViewChange('kanban')}>Kanban</button></div></div>
       <section className="task-composer panel"><form className="todo-form" onSubmit={addTodo}><input required placeholder="Task name" value={form.title} onChange={(event) => setForm({ ...form, title: event.target.value })} /><input placeholder="Description" value={form.description} onChange={(event) => setForm({ ...form, description: event.target.value })} /><label className="form-field"><span>Due date & time</span><input required type="datetime-local" min={minDateTime} value={form.dueDate} onChange={(event) => setForm({ ...form, dueDate: event.target.value })} /></label><label className="form-field"><span>Priority</span><select value={form.priority} onChange={(event) => setForm({ ...form, priority: event.target.value })}><option value="low">Low</option><option value="medium">Medium</option><option value="high">High</option><option value="urgent">Urgent</option></select></label><label className="form-field"><span>Tag</span><select value={form.tagIds[0] || ''} onChange={(event) => setForm({ ...form, tagIds: event.target.value ? [event.target.value] : [] })}><option value="">No tag</option>{tags.map((tag) => <option key={tag._id} value={tag._id}>{tag.name}</option>)}</select></label><button type="submit" className="add-task-button">＋ Add task</button></form></section>
-      <section className="task-panel">{view === 'kanban' ? <KanbanBoard todos={todos} onStatusChange={onStatusChange} onDelete={onDelete} /> : view === 'sections' ? <SectionView todos={todos} onStatusChange={onStatusChange} onDelete={onDelete} /> : <TodoList todos={todos} onStatusChange={onStatusChange} onDelete={onDelete} />}</section>
+      <section className="task-panel">{view === 'kanban' ? <KanbanBoard todos={todos} onStatusChange={onStatusChange} onDelete={onDelete} /> : view === 'sections' ? <SectionView todos={todos} onStatusChange={onStatusChange} onDelete={onDelete} /> : <TodoList todos={todos} tags={tags} onStatusChange={onStatusChange} onDelete={onDelete} />}</section>
     </>
   );
 }

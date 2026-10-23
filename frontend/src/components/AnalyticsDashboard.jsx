@@ -15,12 +15,13 @@ function StatCard({ label, value, detail, className }) {
   return <article className={`stat-card ${className}`}><span>{label}</span><strong>{value}</strong><small>{detail}</small></article>;
 }
 
-export function AnalyticsDashboard({ todos }) {
+export function AnalyticsDashboard({ todos, onAddTask, onViewSla, onAddTag }) {
   const todayTodos = todos.filter((todo) => isToday(todo.createdAt));
   const completed = todos.filter((todo) => todo.status === 'completed').length;
   return (
     <div className="analytics-view">
       <div className="analytics-heading"><div><span className="auth-kicker">OVERVIEW</span><h2>Dashboard analytics</h2><p>Track your tasks and workflow at a glance.</p></div></div>
+      <section className="quick-actions"><div><h3>Quick actions</h3><p>Jump into the actions you use most.</p></div><div className="quick-action-buttons"><button type="button" onClick={onAddTask}><span>＋</span>Add task</button><button type="button" onClick={onViewSla}><span>◷</span>See SLA</button><button type="button" onClick={onAddTag}><span>#</span>Add tag</button></div></section>
       <h3 className="analytics-section-title">Today</h3>
       <div className="stats-grid">
         <StatCard label="Today&apos;s tasks" value={todayTodos.length} detail="Created today" className="analytics-blue" />

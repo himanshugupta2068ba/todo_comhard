@@ -7,6 +7,12 @@ export default function App() {
   const [user, setUser] = useState(null);
   const [authOpen, setAuthOpen] = useState(false);
   const [loading, setLoading] = useState(Boolean(localStorage.getItem('todo_token')));
+  const [theme, setTheme] = useState(() => localStorage.getItem('todo_theme') || 'light');
+
+  useEffect(() => {
+    document.documentElement.dataset.theme = theme;
+    localStorage.setItem('todo_theme', theme);
+  }, [theme]);
 
   useEffect(() => {
     if (!loading) return;
@@ -17,6 +23,8 @@ export default function App() {
   return (
     <Dashboard
       user={user}
+      theme={theme}
+      onToggleTheme={() => setTheme((currentTheme) => currentTheme === 'light' ? 'dark' : 'light')}
       onLogin={() => setAuthOpen(true)}
       onLogout={() => { localStorage.removeItem('todo_token'); setUser(null); }}
       authOpen={authOpen}
