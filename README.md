@@ -62,10 +62,14 @@ The API is available at `http://localhost:5000/api`.
 - `POST /api/auth/forgot-password`
 - `POST /api/auth/reset-password`
 - `GET /api/auth/me`
-- `GET /api/todos`
+- `GET /api/todos?page=1&limit=20`
 - `POST /api/todos`
 - `PATCH /api/todos/:id`
 - `DELETE /api/todos/:id`
+
+The tasks endpoint returns the requested page together with pagination metadata:
+`{ todos, pagination: { page, limit, total, totalPages } }`. The limit is
+clamped to a maximum of 100 tasks per request.
 
 Tags are user-owned and available through `GET /api/tags` and
 `POST /api/tags`. Tasks can be associated with those tags.

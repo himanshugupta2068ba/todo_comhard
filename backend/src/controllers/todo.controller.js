@@ -1,7 +1,13 @@
 import { createTodo, deleteTodo, listTodos, listTrash, updateTodo } from '../services/todo.service.js';
 
 export const getTodos = async (req, res, next) => {
-  try { res.json({ todos: await listTodos(req.user) }); } catch (error) { next(error); }
+  try {
+    const requestedPage = Number.parseInt(req.query.page, 10) || 1;
+    const requestedLimit = Number.parseInt(req.query.limit, 10) || 20;
+    const page = Math.max(1, requestedPage);
+    const limit = Math.min(100, Math.max(1, requestedLimit));
+    res.json(await listTodos(req.user, { page, limit }));
+  } catch (error) { next(error); }
 };
 
 export const getTrash = async (req, res, next) => {

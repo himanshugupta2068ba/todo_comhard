@@ -53,11 +53,20 @@ const ensureStatusHistory = async (todos) => {
   });
 };
 
-export const listTodos = async (user) => {
-  const todos = await Todo.find({ createdBy: user._id, deletedAt: null })
+export const listTodos = async (user, { page = 1, limit = 20 } = {}) => {
+  const filter = { createdBy: user._id, deletedAt: null };
+  const total = await Todo.countDocuments(filter);
+  const totalPages = Math.max(1, Math.ceil(total / limit));
+  const currentPage = Math.min(page, totalPages);
+  const pagedTodos = await Todo.find(filter)
     .populate('tags', 'name')
-    .sort({ createdAt: -1 });
-  return ensureStatusHistory(todos);
+    .sort({ createdAt: -1 })
+    .skip((currentPage - 1) * limit)
+    .limit(limit);
+  return {
+    todos: await ensureStatusHistory(pagedTodos),
+    pagination: { page: currentPage, limit, total, totalPages }
+  };
 };
 
 export const createTodo = async (user, data) => {

@@ -67,6 +67,10 @@ button { cursor: pointer; }
 .new-section { margin: 18px 0 22px; }
 .new-section button { border: 0; background: transparent; color: #4165e8; font-size: 14px; }
 .task-panel { min-height: 300px; }
+.pagination { display: flex; align-items: center; justify-content: center; gap: 14px; margin: 18px 0 4px; color: #747a84; font-size: 12px; }
+.pagination button { border: 1px solid #dfe3ea; border-radius: 7px; padding: 7px 11px; color: #4165e8; background: #fff; font-size: 11px; }
+.pagination button:hover:not(:disabled) { background: #f0f3ff; }
+.pagination button:disabled { cursor: not-allowed; color: #b0b4bb; background: #f7f8fa; }
 .section-view { display: grid; gap: 12px; }
 .task-section { padding: 12px; border-radius: 9px; background: #f7f8fb; }
 .task-section.blue { background: #f3f6fc; }

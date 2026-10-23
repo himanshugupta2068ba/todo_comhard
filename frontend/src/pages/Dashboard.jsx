@@ -16,10 +16,15 @@ export function Dashboard({ user, theme, onToggleTheme, onLogin, onLogout, authO
   const [error, setError] = useState('');
   const [view, setView] = useState('kanban');
   const [trashTodos, setTrashTodos] = useState([]);
+  const [pagination, setPagination] = useState({ page: 1, limit: 20, total: 0, totalPages: 1 });
 
   const minDateTime = new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 16);
   const completedTasks = todos.filter((todo) => todo.status === 'completed');
-  const loadTodos = async () => setTodos((await request('/todos')).todos);
+  const loadTodos = async (page = pagination.page) => {
+    const result = await request(`/todos?page=${page}&limit=${pagination.limit}`);
+    setTodos(result.todos);
+    setPagination(result.pagination);
+  };
   const loadTrash = async () => setTrashTodos((await request('/todos/trash')).todos);
   const loadTags = async () => setTags((await request('/tags')).tags);
 
@@ -86,8 +91,8 @@ export function Dashboard({ user, theme, onToggleTheme, onLogin, onLogout, authO
           {view === 'sla' && <SlaAnalytics todos={todos} />}
           {view === 'trash' && <><div className="section-header"><h2>Trash <span>{trashTodos.length || ''}</span></h2></div><section className="task-panel trash-panel">{trashTodos.length ? trashTodos.map((todo) => <article className="trash-card" key={todo._id}><strong>{todo.title}</strong><small>Deleted {new Date(todo.deletedAt).toLocaleString()}</small></article>) : <p className="empty">Deleted tasks will appear here.</p>}</section></>}
           {view === 'completed' && <><div className="section-header"><h2>Completed <span>{completedTasks.length || ''}</span></h2></div><section className="task-panel completed-panel"><TodoList todos={completedTasks} tags={tags} {...taskActions} /></section></>}
-          {['kanban', 'list', 'sections'].includes(view) && <TaskWorkspace view={view} todos={todos} tags={tags} form={form} setForm={setForm} addTodo={addTodo} minDateTime={minDateTime} {...taskActions} onViewChange={setView} />}
-          {view.startsWith('tag:') && <TaskWorkspace view="kanban" todos={todos.filter((todo) => todo.tags?.some((tag) => tag._id === view.slice(4)))} tags={tags} form={form} setForm={setForm} addTodo={addTodo} minDateTime={minDateTime} {...taskActions} onViewChange={setView} />}
+          {['kanban', 'list', 'sections'].includes(view) && <TaskWorkspace view={view} todos={todos} tags={tags} form={form} setForm={setForm} addTodo={addTodo} minDateTime={minDateTime} pagination={pagination} onPageChange={loadTodos} {...taskActions} onViewChange={setView} />}
+          {view.startsWith('tag:') && <TaskWorkspace view="kanban" todos={todos.filter((todo) => todo.tags?.some((tag) => tag._id === view.slice(4)))} tags={tags} form={form} setForm={setForm} addTodo={addTodo} minDateTime={minDateTime} pagination={pagination} onPageChange={loadTodos} {...taskActions} onViewChange={setView} />}
           {error && <p className="error">{error}</p>}
         </section>
       </main>
@@ -97,12 +102,17 @@ export function Dashboard({ user, theme, onToggleTheme, onLogin, onLogout, authO
   );
 }
 
-function TaskWorkspace({ view, todos, tags, form, setForm, addTodo, minDateTime, onStatusChange, onDelete, onViewChange }) {
+function TaskWorkspace({ view, todos, tags, form, setForm, addTodo, minDateTime, pagination, onPageChange, onStatusChange, onDelete, onViewChange }) {
   return (
     <>
       <div className="section-header"><h2>Tasks · {view === 'kanban' ? 'Kanban' : view === 'sections' ? 'Sections' : 'List'} <span>{todos.length || ''}</span></h2><div className="view-switcher"><button className={view === 'list' ? 'active' : ''} type="button" onClick={() => onViewChange('list')}>List</button><button className={view === 'sections' ? 'active' : ''} type="button" onClick={() => onViewChange('sections')}>Sections</button><button className={view === 'kanban' ? 'active' : ''} type="button" onClick={() => onViewChange('kanban')}>Kanban</button></div></div>
       <section className="task-composer panel"><form className="todo-form" onSubmit={addTodo}><input required placeholder="Task name" value={form.title} onChange={(event) => setForm({ ...form, title: event.target.value })} /><input placeholder="Description" value={form.description} onChange={(event) => setForm({ ...form, description: event.target.value })} /><label className="form-field"><span>Due date & time</span><input required type="datetime-local" min={minDateTime} value={form.dueDate} onChange={(event) => setForm({ ...form, dueDate: event.target.value })} /></label><label className="form-field"><span>Priority</span><select value={form.priority} onChange={(event) => setForm({ ...form, priority: event.target.value })}><option value="low">Low</option><option value="medium">Medium</option><option value="high">High</option><option value="urgent">Urgent</option></select></label><label className="form-field"><span>Tag</span><select value={form.tagIds[0] || ''} onChange={(event) => setForm({ ...form, tagIds: event.target.value ? [event.target.value] : [] })}><option value="">No tag</option>{tags.map((tag) => <option key={tag._id} value={tag._id}>{tag.name}</option>)}</select></label><button type="submit" className="add-task-button">＋ Add task</button></form></section>
       <section className="task-panel">{view === 'kanban' ? <KanbanBoard todos={todos} onStatusChange={onStatusChange} onDelete={onDelete} /> : view === 'sections' ? <SectionView todos={todos} onStatusChange={onStatusChange} onDelete={onDelete} /> : <TodoList todos={todos} tags={tags} onStatusChange={onStatusChange} onDelete={onDelete} />}</section>
+      {pagination.totalPages > 1 && <nav className="pagination" aria-label="Task pagination">
+        <button type="button" disabled={pagination.page <= 1} onClick={() => onPageChange(pagination.page - 1)}>Previous</button>
+        <span>Page {pagination.page} of {pagination.totalPages}</span>
+        <button type="button" disabled={pagination.page >= pagination.totalPages} onClick={() => onPageChange(pagination.page + 1)}>Next</button>
+      </nav>}
     </>
   );
 }
